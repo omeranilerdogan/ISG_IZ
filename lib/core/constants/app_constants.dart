@@ -1,0 +1,32 @@
+/// Uygulama genelinde kullanılan sabitler: tablo adları, storage bucket'ları vb.
+library;
+
+class DbTables {
+  DbTables._();
+
+  static const profiles = 'profiles';
+  static const firmalar = 'firmalar';
+  static const projeler = 'projeler';
+  static const kullaniciProjeAtamalari = 'kullanici_proje_atamalari';
+  static const tutanaklar = 'tutanaklar';
+  static const tutanakFotograflari = 'tutanak_fotograflari';
+  static const tutanakGecmisi = 'tutanak_gecmisi';
+  static const bildirimler = 'bildirimler';
+  static const pushTokens = 'push_tokens';
+}
+
+class DbFunctions {
+  DbFunctions._();
+
+  static const getTutanaklar = 'get_tutanaklar';
+  static const setCezaTutari = 'set_ceza_tutari';
+  static const tutanakDurumDegistir = 'tutanak_durum_degistir';
+  static const claimPushToken = 'claim_push_token';
+}
+
+class StorageBuckets {
+  StorageBuckets._();
+
+  static const tutanakFotograflari = 'tutanak-fotograflari';
+  static const profilResimleri = 'profil-resimleri';
+}

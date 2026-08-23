@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "776025820167",
+    "project_id": "isg-uygunsuzluk-tespit",
+    "storage_bucket": "isg-uygunsuzluk-tespit.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:776025820167:android:d3ed7d164eac22ea51eea2",
+        "android_client_info": {
+          "package_name": "com.isgtutanak.isg_uygunsuzluk_tespit"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBfQTaDhBzTcIwg3YP1G6fuZ-XzRIbx5-0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
