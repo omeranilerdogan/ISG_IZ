@@ -28,4 +28,8 @@ class FirmaRepository {
   Future<void> update(String id, Map<String, dynamic> changes) {
     return _client.from(DbTables.firmalar).update(changes).eq('id', id);
   }
+
+  Future<void> delete(String id) {
+    return _client.from(DbTables.firmalar).delete().eq('id', id);
+  }
 }

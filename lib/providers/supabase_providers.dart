@@ -5,6 +5,7 @@ import '../core/config/supabase_config.dart';
 import '../data/repositories/auth_repository.dart';
 import '../data/repositories/bildirim_repository.dart';
 import '../data/repositories/firma_repository.dart';
+import '../data/repositories/osgb_repository.dart';
 import '../data/repositories/profile_repository.dart';
 import '../data/repositories/proje_repository.dart';
 import '../data/repositories/push_token_repository.dart';
@@ -28,6 +29,10 @@ final projeRepositoryProvider = Provider<ProjeRepository>((ref) {
 
 final firmaRepositoryProvider = Provider<FirmaRepository>((ref) {
   return FirmaRepository(ref.watch(supabaseClientProvider));
+});
+
+final osgbRepositoryProvider = Provider<OsgbRepository>((ref) {
+  return OsgbRepository(ref.watch(supabaseClientProvider));
 });
 
 final tutanakRepositoryProvider = Provider<TutanakRepository>((ref) {

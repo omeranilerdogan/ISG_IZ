@@ -91,6 +91,30 @@ class ProfileRepository {
     }
   }
 
+  Future<void> setOsgb(String userId, String? osgbId) async {
+    final rows = await _client
+        .from(DbTables.profiles)
+        .update({'osgb_id': osgbId})
+        .eq('id', userId)
+        .select();
+    if (rows.isEmpty) {
+      throw StateError('Güncelleme reddedildi: bu işlem için yetkiniz yok.');
+    }
+  }
+
+  /// Saha Personeli'nin UTTS açabileceği tek proje — RLS bu değerle
+  /// `firma_id` eşleşmesini zorunlu kılar (bkz. `is_personel_kapsam_uygun`).
+  Future<void> setVarsayilanProje(String userId, String? projeId) async {
+    final rows = await _client
+        .from(DbTables.profiles)
+        .update({'varsayilan_proje_id': projeId})
+        .eq('id', userId)
+        .select();
+    if (rows.isEmpty) {
+      throw StateError('Güncelleme reddedildi: bu işlem için yetkiniz yok.');
+    }
+  }
+
   Future<List<String>> fetchAtananProjeIdleri(String userId) async {
     final rows = await _client
         .from(DbTables.kullaniciProjeAtamalari)

@@ -9,6 +9,7 @@ import '../../../providers/profile_providers.dart';
 import '../../../providers/supabase_providers.dart';
 import '../../../shared/widgets/role_badge.dart';
 import 'admin_dashboard.dart';
+import 'firma_dashboard.dart';
 import 'personel_dashboard.dart';
 import 'yonetici_dashboard.dart';
 
@@ -27,8 +28,9 @@ class HomeShell extends ConsumerWidget {
 
     final Widget dashboard = switch (profile.rol) {
       KullaniciRolu.admin => const AdminDashboard(),
-      KullaniciRolu.isgUzmani || KullaniciRolu.santiyeSefi => const YoneticiDashboard(),
-      KullaniciRolu.personel => const PersonelDashboard(),
+      KullaniciRolu.santiyeSefi => const YoneticiDashboard(),
+      KullaniciRolu.isgUzmani || KullaniciRolu.personel => const PersonelDashboard(),
+      KullaniciRolu.firmaYetkilisi || KullaniciRolu.firmaSorumlusu => const FirmaDashboard(),
     };
 
     return Scaffold(

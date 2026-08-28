@@ -105,6 +105,8 @@ class _PersonelCardState extends ConsumerState<_PersonelCard> {
   @override
   Widget build(BuildContext context) {
     final firmalarAsync = ref.watch(_firmalarListProvider);
+    final osgblarAsync = ref.watch(_osgblarListProvider);
+    final projelerAsync = ref.watch(_projelerListProvider);
 
     return Card(
       child: Padding(
@@ -173,6 +175,51 @@ class _PersonelCardState extends ConsumerState<_PersonelCard> {
                   loading: () => const SizedBox.shrink(),
                   error: (error, stack) => const SizedBox.shrink(),
                 ),
+                osgblarAsync.when(
+                  data: (osgblar) => DropdownButton<String?>(
+                    value: profile.osgbId,
+                    hint: const Text('OSGB seç'),
+                    underline: const SizedBox.shrink(),
+                    items: [
+                      const DropdownMenuItem<String?>(
+                        value: null,
+                        child: Text('— OSGB yok —'),
+                      ),
+                      ...osgblar.map(
+                        (o) => DropdownMenuItem(value: o.id, child: Text(o.ad)),
+                      ),
+                    ],
+                    onChanged: (v) => ref
+                        .read(profileRepositoryProvider)
+                        .setOsgb(profile.id, v)
+                        .catchError(_hataGoster),
+                  ),
+                  loading: () => const SizedBox.shrink(),
+                  error: (error, stack) => const SizedBox.shrink(),
+                ),
+                if (profile.rol == KullaniciRolu.personel)
+                  projelerAsync.when(
+                    data: (projeler) => DropdownButton<String?>(
+                      value: profile.varsayilanProjeId,
+                      hint: const Text('Proje seç'),
+                      underline: const SizedBox.shrink(),
+                      items: [
+                        const DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text('— Proje yok —'),
+                        ),
+                        ...projeler.map(
+                          (p) => DropdownMenuItem(value: p.id, child: Text(p.ad)),
+                        ),
+                      ],
+                      onChanged: (v) => ref
+                          .read(profileRepositoryProvider)
+                          .setVarsayilanProje(profile.id, v)
+                          .catchError(_hataGoster),
+                    ),
+                    loading: () => const SizedBox.shrink(),
+                    error: (error, stack) => const SizedBox.shrink(),
+                  ),
                 if (profile.rol == KullaniciRolu.isgUzmani ||
                     profile.rol == KullaniciRolu.santiyeSefi)
                   OutlinedButton.icon(
@@ -235,6 +282,14 @@ class _PersonelCardState extends ConsumerState<_PersonelCard> {
 
 final _firmalarListProvider = FutureProvider.autoDispose((ref) {
   return ref.watch(firmaRepositoryProvider).fetchAll();
+});
+
+final _osgblarListProvider = FutureProvider.autoDispose((ref) {
+  return ref.watch(osgbRepositoryProvider).fetchAll();
+});
+
+final _projelerListProvider = FutureProvider.autoDispose((ref) {
+  return ref.watch(projeRepositoryProvider).fetchAll();
 });
 
 class _ProjeAtamaDialog extends ConsumerStatefulWidget {

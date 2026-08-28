@@ -18,6 +18,10 @@ class RoleBadge extends StatelessWidget {
         return const Color(0xFF9A3412);
       case KullaniciRolu.personel:
         return const Color(0xFF52525B);
+      case KullaniciRolu.firmaYetkilisi:
+        return const Color(0xFF6D28D9);
+      case KullaniciRolu.firmaSorumlusu:
+        return const Color(0xFFB45309);
     }
   }
 

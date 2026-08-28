@@ -238,6 +238,10 @@ class _RolKarti extends StatelessWidget {
         return Icons.engineering_outlined;
       case KullaniciRolu.personel:
         return Icons.person_outline;
+      case KullaniciRolu.firmaYetkilisi:
+        return Icons.business_outlined;
+      case KullaniciRolu.firmaSorumlusu:
+        return Icons.verified_user_outlined;
     }
   }
 

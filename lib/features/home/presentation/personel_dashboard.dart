@@ -8,8 +8,8 @@ import '../../../providers/profile_providers.dart';
 import '../../../providers/tutanak_providers.dart';
 import '../../../shared/widgets/feature_placeholder_card.dart';
 
-/// Bölüm 5.3 — Saha Personeli: "Yeni Tutanak Oluştur" butonu ve kendi
-/// tutanaklarının durum özeti (Taslak/Gönderildi/Onaylandı/Reddedildi).
+/// Bölüm 5.3 — Saha Personeli / İSG Uzmanı: "Yeni Tutanak Oluştur" butonu ve
+/// kendi tutanaklarının durum özeti (Taslak/Gönderildi/Onaylandı/Reddedildi).
 class PersonelDashboard extends ConsumerWidget {
   const PersonelDashboard({super.key});
 
@@ -23,7 +23,7 @@ class PersonelDashboard extends ConsumerWidget {
       children: [
         Text('Merhaba, ${profile?.adSoyad ?? ''}', style: Theme.of(context).textTheme.titleLarge),
         const SizedBox(height: 4),
-        const Text('Saha Personeli'),
+        Text(profile?.rol.etiket ?? ''),
         const SizedBox(height: 20),
         Card(
           child: InkWell(

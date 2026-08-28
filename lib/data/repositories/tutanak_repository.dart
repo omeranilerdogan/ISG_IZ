@@ -6,6 +6,7 @@ import '../../core/constants/app_constants.dart';
 import '../../core/constants/app_enums.dart';
 import '../models/tutanak_fotograf_model.dart';
 import '../models/tutanak_model.dart';
+import '../models/tutanak_yorum_model.dart';
 
 class TutanakRepository {
   TutanakRepository(this._client);
@@ -140,23 +141,33 @@ class TutanakRepository {
         .createSignedUrl(storagePath, expiresInSaniye);
   }
 
+  /// Revizyon notu / yorum fotoğrafları — `tutanak-ek-fotograflari` bucket'ı.
+  Future<String> getEkFotografSignedUrl(String storagePath, {int expiresInSaniye = 3600}) {
+    return _client.storage
+        .from(StorageBuckets.tutanakEkFotograflari)
+        .createSignedUrl(storagePath, expiresInSaniye);
+  }
+
   /// PDF'e gömmek için fotoğrafın ham baytlarını indirir (imzalı URL/HTTP
   /// dolaşımı gerekmez — Faz 6 PDF dışa aktarma).
   Future<Uint8List> downloadFotograf(String storagePath) {
     return _client.storage.from(StorageBuckets.tutanakFotograflari).download(storagePath);
   }
 
-  /// Onayla/Reddet/Revizyon İste/Kapat (Bölüm 7) — `tutanak_durum_degistir()` RPC'si
-  /// yetki ve durum geçişi kontrolünü sunucu tarafında yapar.
+  /// Onayla/Reddet/Revizyon İste/Kapat (yalnızca Admin) — `tutanak_durum_degistir()`
+  /// RPC'si yetki ve durum geçişi kontrolünü sunucu tarafında yapar. `fotoYollari`
+  /// verilirse notla birlikte oluşan `tutanak_gecmisi` satırına eklenir.
   Future<void> durumDegistir({
     required String tutanakId,
     required TutanakDurumu yeniDurum,
     String? not,
+    List<String>? fotoYollari,
   }) {
     return _client.rpc(DbFunctions.tutanakDurumDegistir, params: {
       'p_tutanak_id': tutanakId,
       'p_yeni_durum': yeniDurum.dbValue,
       'p_not': not,
+      'p_foto_yollari': fotoYollari,
     });
   }
 
@@ -166,5 +177,48 @@ class TutanakRepository {
       'p_tutanak_id': tutanakId,
       'p_tutar': tutar,
     });
+  }
+
+  /// Admin'in Onayla/Reddet/Revizyon İste notuna veya Firma Sorumlusu'nun
+  /// yorumuna eklenecek fotoğrafı yükler — DB satırını ilgili RPC yazar.
+  Future<String> uploadEkFotograf({
+    required String tutanakId,
+    required int siraNo,
+    required Uint8List bytes,
+  }) async {
+    final dosyaAdi = '${DateTime.now().microsecondsSinceEpoch}_$siraNo.jpg';
+    final path = '$tutanakId/$dosyaAdi';
+    await _client.storage.from(StorageBuckets.tutanakEkFotograflari).uploadBinary(
+          path,
+          bytes,
+          fileOptions: const FileOptions(contentType: 'image/jpeg', upsert: true),
+        );
+    return path;
+  }
+
+  /// Firma Sorumlusu (ve Admin) için tutanak içeriğini/durumunu değiştirmeyen
+  /// not+fotoğraf yorumu — `tutanak_yorum_ekle()` RPC'si.
+  Future<String> yorumEkle({
+    required String tutanakId,
+    required String not,
+    List<String>? fotoYollari,
+  }) async {
+    final id = await _client.rpc(DbFunctions.tutanakYorumEkle, params: {
+      'p_tutanak_id': tutanakId,
+      'p_not': not,
+      'p_foto_yollari': fotoYollari,
+    });
+    return id as String;
+  }
+
+  Future<List<TutanakYorumModel>> fetchYorumlar(String tutanakId) async {
+    final rows = await _client
+        .from(DbTables.tutanakYorumlari)
+        .select('*, profiles(ad_soyad), tutanak_yorum_fotograflari(*)')
+        .eq('tutanak_id', tutanakId)
+        .order('created_at');
+    return (rows as List)
+        .map((e) => TutanakYorumModel.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 }

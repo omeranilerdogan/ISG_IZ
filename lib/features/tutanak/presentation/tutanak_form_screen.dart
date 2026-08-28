@@ -15,6 +15,7 @@ import '../../../data/models/firma_model.dart';
 import '../../../data/models/proje_model.dart';
 import '../../../data/models/taslak_kuyruk_ogesi.dart';
 import '../../../data/models/tutanak_fotograf_model.dart';
+import '../../../providers/profile_providers.dart';
 import '../../../providers/supabase_providers.dart';
 import '../../../providers/taslak_kuyruk_providers.dart';
 import '../../../providers/tutanak_providers.dart';
@@ -46,8 +47,17 @@ const _firmalarOnbellekAnahtari = 'firmalar_onbellek';
 /// önbellekle döner; aksi halde canlı veriyi çekip önbelleği tazeler
 /// (Faz 5 — offline taslak formu bu listeler olmadan kullanılamaz).
 final _formProjelerProvider = FutureProvider.autoDispose<List<ProjeModel>>((ref) async {
+  final List<ProjeModel> liste;
   try {
-    final liste = await ref.watch(projeRepositoryProvider).fetchAll(sadeceAktif: true);
+    liste = await ref.watch(projeRepositoryProvider).fetchAll(sadeceAktif: true);
+  } catch (e) {
+    final onbellek = await YerelDepo.oku(_projelerOnbellekAnahtari);
+    if (onbellek == null) rethrow;
+    return (onbellek as List).map((j) => ProjeModel.fromJson(j as Map<String, dynamic>)).toList();
+  }
+  // Önbelleğe yazma (örn. path_provider hatası) başarısız olsa bile ağdan
+  // gelen geçerli veriyi geçersiz kılmamalı — bu yüzden ayrı bir try/catch.
+  try {
     await YerelDepo.yaz(
       _projelerOnbellekAnahtari,
       liste
@@ -60,27 +70,26 @@ final _formProjelerProvider = FutureProvider.autoDispose<List<ProjeModel>>((ref)
               })
           .toList(),
     );
-    return liste;
-  } catch (e) {
-    final onbellek = await YerelDepo.oku(_projelerOnbellekAnahtari);
-    if (onbellek == null) rethrow;
-    return (onbellek as List).map((j) => ProjeModel.fromJson(j as Map<String, dynamic>)).toList();
-  }
+  } catch (_) {}
+  return liste;
 });
 
 final _formFirmalarProvider = FutureProvider.autoDispose<List<FirmaModel>>((ref) async {
+  final List<FirmaModel> liste;
   try {
-    final liste = await ref.watch(firmaRepositoryProvider).fetchAll();
-    await YerelDepo.yaz(
-      _firmalarOnbellekAnahtari,
-      liste.map((f) => {'id': f.id, 'ad': f.ad, 'tur': f.tur.dbValue}).toList(),
-    );
-    return liste;
+    liste = await ref.watch(firmaRepositoryProvider).fetchAll();
   } catch (e) {
     final onbellek = await YerelDepo.oku(_firmalarOnbellekAnahtari);
     if (onbellek == null) rethrow;
     return (onbellek as List).map((j) => FirmaModel.fromJson(j as Map<String, dynamic>)).toList();
   }
+  try {
+    await YerelDepo.yaz(
+      _firmalarOnbellekAnahtari,
+      liste.map((f) => {'id': f.id, 'ad': f.ad, 'proje_id': f.projeId}).toList(),
+    );
+  } catch (_) {}
+  return liste;
 });
 
 /// Bölüm 5.4 — Tutanak Oluşturma Formu (1. Genel Bilgiler, 2. Uygunsuzluk Tarifi
@@ -370,6 +379,15 @@ class _TutanakFormScreenState extends ConsumerState<TutanakFormScreen> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    final profil = ref.watch(currentProfileProvider).valueOrNull;
+    // Saha Personeli yalnızca kendi firma+projesine UTTS açabilir (RLS bunu
+    // zorunlu kılar) — yeni kayıtta bu alanlar profilden sabitlenip kilitlenir.
+    final kilitli = !_duzenlemeModu && profil?.rol == KullaniciRolu.personel;
+    if (kilitli) {
+      _seciliProjeId ??= profil?.varsayilanProjeId;
+      _seciliFirmaId ??= profil?.firmaId;
+    }
+
     return Scaffold(
       appBar: AppBar(title: Text(_duzenlemeModu ? 'Tutanağı Düzenle' : 'Yeni Tutanak')),
       body: Stepper(
@@ -385,6 +403,7 @@ class _TutanakFormScreenState extends ConsumerState<TutanakFormScreen> {
               seciliProjeId: _seciliProjeId,
               seciliFirmaId: _seciliFirmaId,
               tespitTarihi: _tespitTarihi,
+              kilitli: kilitli,
               onProjeChanged: (v) => setState(() => _seciliProjeId = v),
               onFirmaChanged: (v) => setState(() => _seciliFirmaId = v),
               onTarihChanged: (v) => setState(() => _tespitTarihi = v),
@@ -516,6 +535,7 @@ class _GenelBilgilerAdimi extends ConsumerWidget {
     required this.seciliProjeId,
     required this.seciliFirmaId,
     required this.tespitTarihi,
+    this.kilitli = false,
     required this.onProjeChanged,
     required this.onFirmaChanged,
     required this.onTarihChanged,
@@ -524,6 +544,7 @@ class _GenelBilgilerAdimi extends ConsumerWidget {
   final String? seciliProjeId;
   final String? seciliFirmaId;
   final DateTime tespitTarihi;
+  final bool kilitli;
   final ValueChanged<String?> onProjeChanged;
   final ValueChanged<String?> onFirmaChanged;
   final ValueChanged<DateTime> onTarihChanged;
@@ -541,7 +562,7 @@ class _GenelBilgilerAdimi extends ConsumerWidget {
             initialValue: seciliProjeId,
             decoration: const InputDecoration(labelText: 'Proje Adı'),
             items: projeler.map((p) => DropdownMenuItem(value: p.id, child: Text(p.ad))).toList(),
-            onChanged: onProjeChanged,
+            onChanged: kilitli ? null : onProjeChanged,
           ),
           loading: () => const LinearProgressIndicator(),
           error: (e, _) => Text('Projeler yüklenemedi: $e'),
@@ -553,7 +574,7 @@ class _GenelBilgilerAdimi extends ConsumerWidget {
             decoration: const InputDecoration(labelText: 'İlgili Firma'),
             items:
                 firmalar.map((f) => DropdownMenuItem(value: f.id, child: Text(f.ad))).toList(),
-            onChanged: onFirmaChanged,
+            onChanged: kilitli ? null : onFirmaChanged,
           ),
           loading: () => const LinearProgressIndicator(),
           error: (e, _) => Text('Firmalar yüklenemedi: $e'),

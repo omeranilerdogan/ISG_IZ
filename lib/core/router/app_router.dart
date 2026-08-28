@@ -68,7 +68,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/home';
       }
 
-      if (state.matchedLocation == '/raporlar' && profile.rol == KullaniciRolu.personel) {
+      const raporlarKisitli = {
+        KullaniciRolu.personel,
+        KullaniciRolu.firmaYetkilisi,
+        KullaniciRolu.firmaSorumlusu,
+      };
+      if (state.matchedLocation == '/raporlar' && raporlarKisitli.contains(profile.rol)) {
         return '/home';
       }
 

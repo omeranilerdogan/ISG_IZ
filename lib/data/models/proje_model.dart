@@ -4,6 +4,7 @@ class ProjeModel {
   final String? yukleniciAdi;
   final String? adres;
   final bool aktif;
+  final String? osgbId;
 
   const ProjeModel({
     required this.id,
@@ -11,6 +12,7 @@ class ProjeModel {
     this.yukleniciAdi,
     this.adres,
     required this.aktif,
+    this.osgbId,
   });
 
   factory ProjeModel.fromJson(Map<String, dynamic> json) {
@@ -20,6 +22,7 @@ class ProjeModel {
       yukleniciAdi: json['yuklenici_adi'] as String?,
       adres: json['adres'] as String?,
       aktif: json['aktif'] as bool? ?? true,
+      osgbId: json['osgb_id'] as String?,
     );
   }
 
@@ -28,5 +31,6 @@ class ProjeModel {
         'yuklenici_adi': yukleniciAdi,
         'adres': adres,
         'aktif': aktif,
+        'osgb_id': osgbId,
       };
 }

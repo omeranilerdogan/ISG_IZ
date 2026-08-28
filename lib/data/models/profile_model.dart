@@ -6,6 +6,7 @@ class ProfileModel {
   final String? telefon;
   final KullaniciRolu rol;
   final String? firmaId;
+  final String? osgbId;
   final String? varsayilanProjeId;
   final bool aktif;
   final DateTime createdAt;
@@ -16,6 +17,7 @@ class ProfileModel {
     this.telefon,
     required this.rol,
     this.firmaId,
+    this.osgbId,
     this.varsayilanProjeId,
     required this.aktif,
     required this.createdAt,
@@ -28,6 +30,7 @@ class ProfileModel {
       telefon: json['telefon'] as String?,
       rol: KullaniciRolu.fromDb(json['rol'] as String),
       firmaId: json['firma_id'] as String?,
+      osgbId: json['osgb_id'] as String?,
       varsayilanProjeId: json['varsayilan_proje_id'] as String?,
       aktif: json['aktif'] as bool? ?? false,
       createdAt: DateTime.parse(json['created_at'] as String),
@@ -46,6 +49,7 @@ class ProfileModel {
     String? telefon,
     KullaniciRolu? rol,
     String? firmaId,
+    String? osgbId,
     String? varsayilanProjeId,
     bool? aktif,
   }) {
@@ -55,6 +59,7 @@ class ProfileModel {
       telefon: telefon ?? this.telefon,
       rol: rol ?? this.rol,
       firmaId: firmaId ?? this.firmaId,
+      osgbId: osgbId ?? this.osgbId,
       varsayilanProjeId: varsayilanProjeId ?? this.varsayilanProjeId,
       aktif: aktif ?? this.aktif,
       createdAt: createdAt,

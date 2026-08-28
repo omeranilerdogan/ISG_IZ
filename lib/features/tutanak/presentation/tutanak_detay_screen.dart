@@ -1,14 +1,19 @@
+import 'dart:typed_data';
+
 import 'package:file_saver/file_saver.dart' show MimeType;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/constants/app_enums.dart';
 import '../../../core/export/disa_aktarilan_dosya_servisi.dart';
 import '../../../core/export/tutanak_pdf_olusturucu.dart';
 import '../../../data/models/tutanak_model.dart';
+import '../../../data/models/tutanak_yorum_model.dart';
 import '../../../providers/profile_providers.dart';
 import '../../../providers/supabase_providers.dart';
 import '../../../providers/tutanak_providers.dart';
@@ -111,7 +116,7 @@ class _DetayIcerik extends ConsumerWidget {
     final userId = ref.watch(currentUserIdProvider);
     final fotograflarAsync = ref.watch(tutanakFotografUrlleriProvider(tutanak.id));
 
-    final incelemeYetkisi = rol == KullaniciRolu.admin || rol == KullaniciRolu.isgUzmani;
+    final incelemeYetkisi = rol == KullaniciRolu.admin;
     final duzenleyebilir =
         tutanak.duzenlenebilir && tutanak.raporlayanId == userId;
 
@@ -195,6 +200,18 @@ class _DetayIcerik extends ConsumerWidget {
             onPressed: () => _cezaTutariDialogAc(context, ref, tutanak),
             icon: const Icon(Icons.payments_outlined),
             label: Text(tutanak.cezaTutari == null ? 'Ceza Tutarı Gir' : 'Ceza Tutarını Düzenle'),
+          ),
+        ],
+        const SizedBox(height: 24),
+        const Text('Yorumlar', style: TextStyle(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        _YorumlarBolumu(tutanakId: tutanak.id),
+        if (rol == KullaniciRolu.firmaSorumlusu) ...[
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () => _yorumEkleDialogAc(context, ref, tutanak.id),
+            icon: const Icon(Icons.comment_outlined),
+            label: const Text('Revize Ekle'),
           ),
         ],
       ],
@@ -281,14 +298,36 @@ class _IncelemeAksiyonlari extends ConsumerStatefulWidget {
 class _IncelemeAksiyonlariState extends ConsumerState<_IncelemeAksiyonlari> {
   bool _isleniyor = false;
 
-  Future<void> _durumDegistir(TutanakDurumu yeniDurum, {String? not}) async {
+  Future<void> _durumDegistir(
+    TutanakDurumu yeniDurum, {
+    String? not,
+    List<Uint8List>? fotograflar,
+  }) async {
     setState(() => _isleniyor = true);
     try {
-      await ref.read(tutanakRepositoryProvider).durumDegistir(
-            tutanakId: widget.tutanak.id,
-            yeniDurum: yeniDurum,
-            not: not,
+      final repo = ref.read(tutanakRepositoryProvider);
+      final fotoYollari = <String>[];
+      if (fotograflar != null) {
+        for (var i = 0; i < fotograflar.length; i++) {
+          final sikistirilmis = await FlutterImageCompress.compressWithList(
+            fotograflar[i],
+            minWidth: 1600,
+            minHeight: 1600,
+            quality: 75,
           );
+          fotoYollari.add(await repo.uploadEkFotograf(
+            tutanakId: widget.tutanak.id,
+            siraNo: i,
+            bytes: sikistirilmis,
+          ));
+        }
+      }
+      await repo.durumDegistir(
+        tutanakId: widget.tutanak.id,
+        yeniDurum: yeniDurum,
+        not: not,
+        fotoYollari: fotoYollari.isEmpty ? null : fotoYollari,
+      );
       ref.invalidate(tutanakDetayProvider(widget.tutanak.id));
       ref.invalidate(tutanakListProvider(const TutanakFiltre()));
       if (mounted) {
@@ -305,27 +344,16 @@ class _IncelemeAksiyonlariState extends ConsumerState<_IncelemeAksiyonlari> {
   }
 
   Future<void> _notluDurumDegistir(TutanakDurumu yeniDurum, String baslik) async {
-    final controller = TextEditingController();
-    final not = await showDialog<String>(
+    final sonuc = await showDialog<_NotFotoSonuc>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(baslik),
-        content: TextField(
-          controller: controller,
-          maxLines: 3,
-          decoration: const InputDecoration(labelText: 'Gerekçe / Not'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Vazgeç')),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
-            child: const Text('Onayla'),
-          ),
-        ],
-      ),
+      builder: (context) => _NotFotoDialog(baslik: baslik),
     );
-    if (not == null) return;
-    await _durumDegistir(yeniDurum, not: not.isEmpty ? null : not);
+    if (sonuc == null) return;
+    await _durumDegistir(
+      yeniDurum,
+      not: sonuc.not.isEmpty ? null : sonuc.not,
+      fotograflar: sonuc.fotograflar,
+    );
   }
 
   @override
@@ -376,5 +404,254 @@ class _IncelemeAksiyonlariState extends ConsumerState<_IncelemeAksiyonlari> {
     if (buttons.isEmpty) return const SizedBox.shrink();
 
     return Wrap(spacing: 10, runSpacing: 10, children: buttons);
+  }
+}
+
+class _NotFotoSonuc {
+  const _NotFotoSonuc({required this.not, required this.fotograflar});
+
+  final String not;
+  final List<Uint8List> fotograflar;
+}
+
+/// Revizyon İste / Reddet notu ve Firma Sorumlusu yorumu için ortak diyalog:
+/// not metni + galeri/kameradan opsiyonel fotoğraf ekleme.
+class _NotFotoDialog extends StatefulWidget {
+  const _NotFotoDialog({required this.baslik, this.notZorunlu = false});
+
+  final String baslik;
+  final bool notZorunlu;
+
+  @override
+  State<_NotFotoDialog> createState() => _NotFotoDialogState();
+}
+
+class _NotFotoDialogState extends State<_NotFotoDialog> {
+  final _controller = TextEditingController();
+  final List<Uint8List> _fotograflar = [];
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _galeridenEkle() async {
+    final files = await ImagePicker().pickMultiImage(imageQuality: 90);
+    for (final file in files) {
+      _fotograflar.add(await file.readAsBytes());
+    }
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _kameradanEkle() async {
+    final file = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 90);
+    if (file == null) return;
+    _fotograflar.add(await file.readAsBytes());
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.baslik),
+      content: SizedBox(
+        width: 380,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _controller,
+              maxLines: 3,
+              decoration: const InputDecoration(labelText: 'Gerekçe / Not'),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                for (final f in _fotograflar)
+                  SizedBox(
+                    width: 72,
+                    height: 72,
+                    child: Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: SizedBox.expand(child: Image.memory(f, fit: BoxFit.cover)),
+                        ),
+                        Positioned(
+                          top: 2,
+                          right: 2,
+                          child: InkWell(
+                            onTap: () => setState(() => _fotograflar.remove(f)),
+                            child: const CircleAvatar(
+                              radius: 10,
+                              backgroundColor: Colors.black54,
+                              child: Icon(Icons.close, size: 12, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                OutlinedButton.icon(
+                  onPressed: _galeridenEkle,
+                  icon: const Icon(Icons.photo_library_outlined, size: 18),
+                  label: const Text('Galeri'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _kameradanEkle,
+                  icon: const Icon(Icons.camera_alt_outlined, size: 18),
+                  label: const Text('Kamera'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Vazgeç')),
+        FilledButton(
+          onPressed: () {
+            final not = _controller.text.trim();
+            if (widget.notZorunlu && not.isEmpty) return;
+            Navigator.of(context).pop(_NotFotoSonuc(not: not, fotograflar: _fotograflar));
+          },
+          child: const Text('Onayla'),
+        ),
+      ],
+    );
+  }
+}
+
+Future<void> _yorumEkleDialogAc(BuildContext context, WidgetRef ref, String tutanakId) async {
+  final sonuc = await showDialog<_NotFotoSonuc>(
+    context: context,
+    builder: (context) => const _NotFotoDialog(baslik: 'Revize Ekle', notZorunlu: true),
+  );
+  if (sonuc == null) return;
+
+  try {
+    final repo = ref.read(tutanakRepositoryProvider);
+    final fotoYollari = <String>[];
+    for (var i = 0; i < sonuc.fotograflar.length; i++) {
+      final sikistirilmis = await FlutterImageCompress.compressWithList(
+        sonuc.fotograflar[i],
+        minWidth: 1600,
+        minHeight: 1600,
+        quality: 75,
+      );
+      fotoYollari.add(await repo.uploadEkFotograf(
+        tutanakId: tutanakId,
+        siraNo: i,
+        bytes: sikistirilmis,
+      ));
+    }
+    await repo.yorumEkle(
+      tutanakId: tutanakId,
+      not: sonuc.not,
+      fotoYollari: fotoYollari.isEmpty ? null : fotoYollari,
+    );
+    ref.invalidate(tutanakYorumlarProvider(tutanakId));
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Yorum eklendi.')));
+    }
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Yorum eklenemedi: $e')));
+    }
+  }
+}
+
+class _YorumlarBolumu extends ConsumerWidget {
+  const _YorumlarBolumu({required this.tutanakId});
+
+  final String tutanakId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final yorumlarAsync = ref.watch(tutanakYorumlarProvider(tutanakId));
+
+    return yorumlarAsync.when(
+      data: (yorumlar) => yorumlar.isEmpty
+          ? const Text('Henüz yorum eklenmemiş.')
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: yorumlar.map((y) => _YorumKarti(yorum: y)).toList(),
+            ),
+      loading: () => const LinearProgressIndicator(),
+      error: (e, _) => Text('Yorumlar yüklenemedi: $e'),
+    );
+  }
+}
+
+class _YorumKarti extends ConsumerWidget {
+  const _YorumKarti({required this.yorum});
+
+  final TutanakYorumModel yorum;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final repo = ref.read(tutanakRepositoryProvider);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  yorum.yazanAdi ?? 'Bilinmiyor',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  DateFormat('dd.MM.yyyy HH:mm').format(yorum.createdAt),
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(yorum.notMetni),
+            if (yorum.fotograflar.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: yorum.fotograflar
+                    .map(
+                      (f) => FutureBuilder<String>(
+                        future: repo.getEkFotografSignedUrl(f.storagePath),
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData) {
+                            return const SizedBox(
+                              width: 64,
+                              height: 64,
+                              child: ColoredBox(color: Colors.black12),
+                            );
+                          }
+                          return ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              snapshot.data!,
+                              width: 64,
+                              height: 64,
+                              fit: BoxFit.cover,
+                            ),
+                          );
+                        },
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }

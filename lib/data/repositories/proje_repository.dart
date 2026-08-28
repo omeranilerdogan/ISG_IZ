@@ -39,4 +39,8 @@ class ProjeRepository {
       throw StateError('Güncelleme reddedildi: bu işlem için yetkiniz yok.');
     }
   }
+
+  Future<void> delete(String id) {
+    return _client.from(DbTables.projeler).delete().eq('id', id);
+  }
 }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/constants/app_enums.dart';
 import '../data/models/tutanak_fotograf_model.dart';
 import '../data/models/tutanak_model.dart';
+import '../data/models/tutanak_yorum_model.dart';
 import 'supabase_providers.dart';
 
 class TutanakFiltre {
@@ -35,6 +36,11 @@ final tutanakDetayProvider = FutureProvider.autoDispose.family<TutanakModel?, St
 final tutanakFotograflarProvider =
     FutureProvider.autoDispose.family<List<TutanakFotografModel>, String>((ref, tutanakId) {
   return ref.watch(tutanakRepositoryProvider).fetchFotograflar(tutanakId);
+});
+
+final tutanakYorumlarProvider =
+    FutureProvider.autoDispose.family<List<TutanakYorumModel>, String>((ref, tutanakId) {
+  return ref.watch(tutanakRepositoryProvider).fetchYorumlar(tutanakId);
 });
 
 typedef TutanakFotografUrl = ({TutanakFotografModel foto, String url});

@@ -6,7 +6,9 @@ enum KullaniciRolu {
   admin,
   isgUzmani('isg_uzmani'),
   santiyeSefi('santiye_sefi'),
-  personel;
+  personel,
+  firmaYetkilisi('firma_yetkilisi'),
+  firmaSorumlusu('firma_sorumlusu');
 
   const KullaniciRolu([String? dbValue]) : _dbValue = dbValue;
 
@@ -31,6 +33,10 @@ enum KullaniciRolu {
         return 'Şantiye Şefi';
       case KullaniciRolu.personel:
         return 'Saha Personeli';
+      case KullaniciRolu.firmaYetkilisi:
+        return 'Firma Yetkilisi';
+      case KullaniciRolu.firmaSorumlusu:
+        return 'Firma Sorumlusu';
     }
   }
 }
@@ -81,20 +87,4 @@ enum TutanakDurumu {
         return 'Kapatıldı';
     }
   }
-}
-
-enum FirmaTuru {
-  anaYuklenici('ana_yuklenici'),
-  taseron;
-
-  const FirmaTuru([String? dbValue]) : _dbValue = dbValue;
-
-  final String? _dbValue;
-
-  String get dbValue => _dbValue ?? name;
-
-  static FirmaTuru fromDb(String value) =>
-      FirmaTuru.values.firstWhere((e) => e.dbValue == value);
-
-  String get etiket => this == FirmaTuru.anaYuklenici ? 'Ana Yüklenici' : 'Taşeron';
 }

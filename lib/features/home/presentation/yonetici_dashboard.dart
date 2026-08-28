@@ -2,19 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/constants/app_enums.dart';
 import '../../../providers/profile_providers.dart';
 import '../../../shared/widgets/feature_placeholder_card.dart';
 
-/// Bölüm 5.3 — Şantiye Şefi / İSG Uzmanı: kendi proje(leri)ndeki açık
-/// tutanak sayısı, bekleyen onaylar (uzman için), son bildirimler.
+/// Bölüm 5.3 — Şantiye Şefi: kendi proje(leri)ndeki açık tutanak sayısı,
+/// son bildirimler (salt okunur — onay/düzenleme yetkisi yok).
 class YoneticiDashboard extends ConsumerWidget {
   const YoneticiDashboard({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(currentProfileProvider).valueOrNull;
-    final isUzman = profile?.rol == KullaniciRolu.isgUzmani;
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -25,8 +23,8 @@ class YoneticiDashboard extends ConsumerWidget {
         const SizedBox(height: 20),
         FeaturePlaceholderCard(
           icon: Icons.pending_actions_outlined,
-          title: isUzman ? 'Bekleyen Onaylar' : 'Açık Tutanaklar',
-          subtitle: 'Atandığınız proje(ler)deki tutanakları görüntüleyin/onaylayın.',
+          title: 'Açık Tutanaklar',
+          subtitle: 'Atandığınız proje(ler)deki tutanakları görüntüleyin.',
           onTap: () => context.push('/tutanak'),
         ),
         const SizedBox(height: 12),
