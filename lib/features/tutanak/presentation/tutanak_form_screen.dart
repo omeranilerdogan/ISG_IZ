@@ -40,20 +40,48 @@ String _firmaAdiBul(List<FirmaModel> liste, String id) {
   return id;
 }
 
+/// Firma listesini seçili projeye göre filtreler: bir projeye bağlanmış
+/// (proje_id dolu) firmalar yalnızca o projede görünür; proje_id boş olan
+/// firmalar (tüm inşaatlarda ortak kullanılan) her projede listelenir.
+/// [mevcutSeciliFirmaId] verilirse (düzenleme modunda), o firma proje
+/// eşleşmese bile listeden düşmez — aksi halde dropdown geçersiz bir
+/// değere sahip olur.
+List<FirmaModel> firmalarProjeyeGoreFiltrele(
+  List<FirmaModel> firmalar,
+  String? projeId, {
+  String? mevcutSeciliFirmaId,
+}) {
+  if (projeId == null) return firmalar;
+  return firmalar
+      .where(
+        (f) =>
+            f.projeId == null ||
+            f.projeId == projeId ||
+            f.id == mevcutSeciliFirmaId,
+      )
+      .toList();
+}
+
 const _projelerOnbellekAnahtari = 'projeler_onbellek';
 const _firmalarOnbellekAnahtari = 'firmalar_onbellek';
 
 /// Bağlantı yokken proje/firma listesini son başarılı çekimden gelen
 /// önbellekle döner; aksi halde canlı veriyi çekip önbelleği tazeler
 /// (Faz 5 — offline taslak formu bu listeler olmadan kullanılamaz).
-final _formProjelerProvider = FutureProvider.autoDispose<List<ProjeModel>>((ref) async {
+final _formProjelerProvider = FutureProvider.autoDispose<List<ProjeModel>>((
+  ref,
+) async {
   final List<ProjeModel> liste;
   try {
-    liste = await ref.watch(projeRepositoryProvider).fetchAll(sadeceAktif: true);
+    liste = await ref
+        .watch(projeRepositoryProvider)
+        .fetchAll(sadeceAktif: true);
   } catch (e) {
     final onbellek = await YerelDepo.oku(_projelerOnbellekAnahtari);
     if (onbellek == null) rethrow;
-    return (onbellek as List).map((j) => ProjeModel.fromJson(j as Map<String, dynamic>)).toList();
+    return (onbellek as List)
+        .map((j) => ProjeModel.fromJson(j as Map<String, dynamic>))
+        .toList();
   }
   // Önbelleğe yazma (örn. path_provider hatası) başarısız olsa bile ağdan
   // gelen geçerli veriyi geçersiz kılmamalı — bu yüzden ayrı bir try/catch.
@@ -61,32 +89,40 @@ final _formProjelerProvider = FutureProvider.autoDispose<List<ProjeModel>>((ref)
     await YerelDepo.yaz(
       _projelerOnbellekAnahtari,
       liste
-          .map((p) => {
-                'id': p.id,
-                'ad': p.ad,
-                'yuklenici_adi': p.yukleniciAdi,
-                'adres': p.adres,
-                'aktif': p.aktif,
-              })
+          .map(
+            (p) => {
+              'id': p.id,
+              'ad': p.ad,
+              'yuklenici_adi': p.yukleniciAdi,
+              'adres': p.adres,
+              'aktif': p.aktif,
+            },
+          )
           .toList(),
     );
   } catch (_) {}
   return liste;
 });
 
-final _formFirmalarProvider = FutureProvider.autoDispose<List<FirmaModel>>((ref) async {
+final _formFirmalarProvider = FutureProvider.autoDispose<List<FirmaModel>>((
+  ref,
+) async {
   final List<FirmaModel> liste;
   try {
     liste = await ref.watch(firmaRepositoryProvider).fetchAll();
   } catch (e) {
     final onbellek = await YerelDepo.oku(_firmalarOnbellekAnahtari);
     if (onbellek == null) rethrow;
-    return (onbellek as List).map((j) => FirmaModel.fromJson(j as Map<String, dynamic>)).toList();
+    return (onbellek as List)
+        .map((j) => FirmaModel.fromJson(j as Map<String, dynamic>))
+        .toList();
   }
   try {
     await YerelDepo.yaz(
       _firmalarOnbellekAnahtari,
-      liste.map((f) => {'id': f.id, 'ad': f.ad, 'proje_id': f.projeId}).toList(),
+      liste
+          .map((f) => {'id': f.id, 'ad': f.ad, 'proje_id': f.projeId})
+          .toList(),
     );
   } catch (_) {}
   return liste;
@@ -171,7 +207,9 @@ class _TutanakFormScreenState extends ConsumerState<TutanakFormScreen> {
   }
 
   int get _toplamFotografSayisi =>
-      _mevcutFotograflar.where((f) => !_silinecekFotografIdleri.contains(f.id)).length +
+      _mevcutFotograflar
+          .where((f) => !_silinecekFotografIdleri.contains(f.id))
+          .length +
       _yeniFotograflar.length;
 
   Future<void> _fotografEkleGaleri() async {
@@ -189,7 +227,10 @@ class _TutanakFormScreenState extends ConsumerState<TutanakFormScreen> {
 
   Future<void> _fotografEkleKamera() async {
     try {
-      final file = await ImagePicker().pickImage(source: ImageSource.camera, imageQuality: 90);
+      final file = await ImagePicker().pickImage(
+        source: ImageSource.camera,
+        imageQuality: 90,
+      );
       if (file == null) return;
       final bytes = await file.readAsBytes();
       if (!mounted) return;
@@ -204,16 +245,19 @@ class _TutanakFormScreenState extends ConsumerState<TutanakFormScreen> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(mesaj)));
   }
 
-  bool _genelBilgilerGecerli() => _seciliProjeId != null && _seciliFirmaId != null;
+  bool _genelBilgilerGecerli() =>
+      _seciliProjeId != null && _seciliFirmaId != null;
 
-  bool _tarifGecerli() => _tehlikeSinifi != null && _aciklamaController.text.trim().isNotEmpty;
+  bool _tarifGecerli() =>
+      _tehlikeSinifi != null && _aciklamaController.text.trim().isNotEmpty;
 
   Future<void> _kaydet({required bool gonder}) async {
     setState(() => _hataMesaji = null);
 
     if (!_genelBilgilerGecerli() || !_tarifGecerli()) {
       setState(() {
-        _hataMesaji = 'Proje, firma, tehlike sınıfı ve uygunsuzluk tarifi zorunludur.';
+        _hataMesaji =
+            'Proje, firma, tehlike sınıfı ve uygunsuzluk tarifi zorunludur.';
         _adim = !_genelBilgilerGecerli() ? 0 : 1;
       });
       return;
@@ -296,7 +340,9 @@ class _TutanakFormScreenState extends ConsumerState<TutanakFormScreen> {
         await repo.deleteFotograf(foto);
       }
 
-      var siraNo = _mevcutFotograflar.where((f) => !_silinecekFotografIdleri.contains(f.id)).length;
+      var siraNo = _mevcutFotograflar
+          .where((f) => !_silinecekFotografIdleri.contains(f.id))
+          .length;
       for (final yeni in _yeniFotograflar) {
         final sikistirilmis = await FlutterImageCompress.compressWithList(
           yeni.bytes,
@@ -320,7 +366,9 @@ class _TutanakFormScreenState extends ConsumerState<TutanakFormScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(gonder ? 'Tutanak gönderildi.' : 'Taslak kaydedildi.')),
+        SnackBar(
+          content: Text(gonder ? 'Tutanak gönderildi.' : 'Taslak kaydedildi.'),
+        ),
       );
       context.pop();
     } catch (e) {
@@ -331,8 +379,10 @@ class _TutanakFormScreenState extends ConsumerState<TutanakFormScreen> {
   }
 
   Future<void> _kuyrugaEkle({required TutanakDurumu durum}) async {
-    final projeler = ref.read(_formProjelerProvider).valueOrNull ?? const <ProjeModel>[];
-    final firmalar = ref.read(_formFirmalarProvider).valueOrNull ?? const <FirmaModel>[];
+    final projeler =
+        ref.read(_formProjelerProvider).valueOrNull ?? const <ProjeModel>[];
+    final firmalar =
+        ref.read(_formFirmalarProvider).valueOrNull ?? const <FirmaModel>[];
 
     final id = DateTime.now().microsecondsSinceEpoch.toString();
 
@@ -349,7 +399,10 @@ class _TutanakFormScreenState extends ConsumerState<TutanakFormScreen> {
     }
 
     final depo = ref.read(taslakKuyrukDeposuProvider);
-    final fotografYollari = await depo.fotograflariKaydet(id, sikistirilmisFotograflar);
+    final fotografYollari = await depo.fotograflariKaydet(
+      id,
+      sikistirilmisFotograflar,
+    );
 
     final tavsiye = _tavsiyeController.text.trim();
 
@@ -389,7 +442,9 @@ class _TutanakFormScreenState extends ConsumerState<TutanakFormScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text(_duzenlemeModu ? 'Tutanağı Düzenle' : 'Yeni Tutanak')),
+      appBar: AppBar(
+        title: Text(_duzenlemeModu ? 'Tutanağı Düzenle' : 'Yeni Tutanak'),
+      ),
       body: Stepper(
         currentStep: _adim,
         onStepTapped: (i) => setState(() => _adim = i),
@@ -398,7 +453,9 @@ class _TutanakFormScreenState extends ConsumerState<TutanakFormScreen> {
           Step(
             title: const Text('Genel Bilgiler'),
             isActive: _adim == 0,
-            state: _genelBilgilerGecerli() ? StepState.complete : StepState.indexed,
+            state: _genelBilgilerGecerli()
+                ? StepState.complete
+                : StepState.indexed,
             content: _GenelBilgilerAdimi(
               seciliProjeId: _seciliProjeId,
               seciliFirmaId: _seciliFirmaId,
@@ -422,10 +479,12 @@ class _TutanakFormScreenState extends ConsumerState<TutanakFormScreen> {
               yeniFotograflar: _yeniFotograflar,
               onTehlikeChanged: (v) => setState(() => _tehlikeSinifi = v),
               onAciklamaChanged: () => setState(() {}),
-              onFotografSilExisting: (id) => setState(() => _silinecekFotografIdleri.add(id)),
+              onFotografSilExisting: (id) =>
+                  setState(() => _silinecekFotografIdleri.add(id)),
               onFotografGeriAlExisting: (id) =>
                   setState(() => _silinecekFotografIdleri.remove(id)),
-              onFotografSilYeni: (foto) => setState(() => _yeniFotograflar.remove(foto)),
+              onFotografSilYeni: (foto) =>
+                  setState(() => _yeniFotograflar.remove(foto)),
               onGaleriSec: _fotografEkleGaleri,
               onKameraSec: _fotografEkleKamera,
             ),
@@ -496,7 +555,9 @@ class _TutanakFormScreenState extends ConsumerState<TutanakFormScreen> {
                             ? const SizedBox(
                                 height: 18,
                                 width: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Text('Taslak Kaydet'),
                       ),
@@ -561,21 +622,43 @@ class _GenelBilgilerAdimi extends ConsumerWidget {
           data: (projeler) => DropdownButtonFormField<String>(
             initialValue: seciliProjeId,
             decoration: const InputDecoration(labelText: 'Proje Adı'),
-            items: projeler.map((p) => DropdownMenuItem(value: p.id, child: Text(p.ad))).toList(),
-            onChanged: kilitli ? null : onProjeChanged,
+            isExpanded: true,
+            menuMaxHeight: MediaQuery.sizeOf(context).height * 0.5,
+            items: projeler
+                .map((p) => DropdownMenuItem(value: p.id, child: Text(p.ad)))
+                .toList(),
+            onChanged: kilitli
+                ? null
+                : (v) {
+                    // Proje değişince, o projeye ait olmayan firma seçimi
+                    // geçersiz kalır (bkz. firmalarProjeyeGoreFiltrele) —
+                    // seçim sıfırlanmazsa dropdown geçersiz bir değerde kalır.
+                    onProjeChanged(v);
+                    onFirmaChanged(null);
+                  },
           ),
           loading: () => const LinearProgressIndicator(),
           error: (e, _) => Text('Projeler yüklenemedi: $e'),
         ),
         const SizedBox(height: 16),
         firmalarAsync.when(
-          data: (firmalar) => DropdownButtonFormField<String>(
-            initialValue: seciliFirmaId,
-            decoration: const InputDecoration(labelText: 'İlgili Firma'),
-            items:
-                firmalar.map((f) => DropdownMenuItem(value: f.id, child: Text(f.ad))).toList(),
-            onChanged: kilitli ? null : onFirmaChanged,
-          ),
+          data: (firmalar) {
+            final firmalarFiltreli = firmalarProjeyeGoreFiltrele(
+              firmalar,
+              seciliProjeId,
+              mevcutSeciliFirmaId: seciliFirmaId,
+            );
+            return DropdownButtonFormField<String>(
+              initialValue: seciliFirmaId,
+              decoration: const InputDecoration(labelText: 'İlgili Firma'),
+              isExpanded: true,
+              menuMaxHeight: MediaQuery.sizeOf(context).height * 0.5,
+              items: firmalarFiltreli
+                  .map((f) => DropdownMenuItem(value: f.id, child: Text(f.ad)))
+                  .toList(),
+              onChanged: kilitli ? null : onFirmaChanged,
+            );
+          },
           loading: () => const LinearProgressIndicator(),
           error: (e, _) => Text('Firmalar yüklenemedi: $e'),
         ),
@@ -591,7 +674,10 @@ class _GenelBilgilerAdimi extends ConsumerWidget {
             if (secilen != null) onTarihChanged(secilen);
           },
           child: InputDecorator(
-            decoration: const InputDecoration(labelText: 'Tarih', suffixIcon: Icon(Icons.event)),
+            decoration: const InputDecoration(
+              labelText: 'Tarih',
+              suffixIcon: Icon(Icons.event),
+            ),
             child: Text(DateFormat('dd.MM.yyyy').format(tespitTarihi)),
           ),
         ),
@@ -636,7 +722,10 @@ class _TarifVeFotograflarAdimi extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('Tehlike Sınıfı', style: TextStyle(fontWeight: FontWeight.w600)),
+        const Text(
+          'Tehlike Sınıfı',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
         const SizedBox(height: 8),
         SegmentedButton<TehlikeSinifi>(
           segments: const [
@@ -661,7 +750,10 @@ class _TarifVeFotograflarAdimi extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
-        const Text('Fotoğraflar', style: TextStyle(fontWeight: FontWeight.w600)),
+        const Text(
+          'Fotoğraflar',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
         const SizedBox(height: 8),
         Wrap(
           spacing: 10,
@@ -671,7 +763,10 @@ class _TarifVeFotograflarAdimi extends StatelessWidget {
               if (!silinecekFotografIdleri.contains(f.id))
                 _FotoThumb(
                   child: mevcutFotografUrl[f.id] != null
-                      ? Image.network(mevcutFotografUrl[f.id]!, fit: BoxFit.cover)
+                      ? Image.network(
+                          mevcutFotografUrl[f.id]!,
+                          fit: BoxFit.cover,
+                        )
                       : const ColoredBox(color: Colors.black12),
                   onSil: () => onFotografSilExisting(f.id),
                 ),
@@ -680,8 +775,16 @@ class _TarifVeFotograflarAdimi extends StatelessWidget {
                 child: Image.memory(f.bytes, fit: BoxFit.cover),
                 onSil: () => onFotografSilYeni(f),
               ),
-            _FotoEkleButonu(icon: Icons.photo_library_outlined, label: 'Galeri', onTap: onGaleriSec),
-            _FotoEkleButonu(icon: Icons.camera_alt_outlined, label: 'Kamera', onTap: onKameraSec),
+            _FotoEkleButonu(
+              icon: Icons.photo_library_outlined,
+              label: 'Galeri',
+              onTap: onGaleriSec,
+            ),
+            _FotoEkleButonu(
+              icon: Icons.camera_alt_outlined,
+              label: 'Kamera',
+              onTap: onKameraSec,
+            ),
           ],
         ),
       ],
@@ -725,7 +828,11 @@ class _FotoThumb extends StatelessWidget {
 }
 
 class _FotoEkleButonu extends StatelessWidget {
-  const _FotoEkleButonu({required this.icon, required this.label, required this.onTap});
+  const _FotoEkleButonu({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String label;
@@ -781,7 +888,10 @@ class _TavsiyeTerminAdimi extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
-        const Text('Termin Tarihi', style: TextStyle(fontWeight: FontWeight.w600)),
+        const Text(
+          'Termin Tarihi',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -812,8 +922,10 @@ class _TavsiyeTerminAdimi extends StatelessWidget {
             }
           },
           child: InputDecorator(
-            decoration:
-                const InputDecoration(labelText: 'Ya da tarih seç', suffixIcon: Icon(Icons.event)),
+            decoration: const InputDecoration(
+              labelText: 'Ya da tarih seç',
+              suffixIcon: Icon(Icons.event),
+            ),
             child: Text(terminTarihi ?? '—'),
           ),
         ),
@@ -851,7 +963,10 @@ class _OzetAdimi extends StatelessWidget {
         _ozetSatiri('Tarih', DateFormat('dd.MM.yyyy').format(tespitTarihi)),
         _ozetSatiri('Tehlike Sınıfı', tehlikeSinifi?.name ?? '—'),
         _ozetSatiri('Uygunsuzluğun Tarifi', aciklama.isEmpty ? '—' : aciklama),
-        _ozetSatiri('Tavsiye ve Öneriler', tavsiyeOneri.isEmpty ? '—' : tavsiyeOneri),
+        _ozetSatiri(
+          'Tavsiye ve Öneriler',
+          tavsiyeOneri.isEmpty ? '—' : tavsiyeOneri,
+        ),
         _ozetSatiri('Termin', terminTarihi ?? '—'),
         _ozetSatiri('Fotoğraf Sayısı', '$fotografSayisi'),
         const SizedBox(height: 8),
@@ -869,7 +984,10 @@ class _OzetAdimi extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+          Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+          ),
           Text(deger),
         ],
       ),

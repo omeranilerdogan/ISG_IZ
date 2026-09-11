@@ -54,9 +54,9 @@ class _TutanakListeScreenState extends ConsumerState<TutanakListeScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Excel oluşturulamadı: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Excel oluşturulamadı: $e')));
     } finally {
       if (mounted) setState(() => _disaAktariliyor = false);
     }
@@ -64,7 +64,9 @@ class _TutanakListeScreenState extends ConsumerState<TutanakListeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final listAsync = ref.watch(tutanakListProvider(TutanakFiltre(durum: _durumFiltre)));
+    final listAsync = ref.watch(
+      tutanakListProvider(TutanakFiltre(durum: _durumFiltre)),
+    );
     final bekleyenTaslakSayisi = ref.watch(bekleyenTaslakSayisiProvider);
 
     return Scaffold(
@@ -77,7 +79,10 @@ class _TutanakListeScreenState extends ConsumerState<TutanakListeScreen> {
                 ? const SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
                   )
                 : const Icon(Icons.table_view_outlined),
             onPressed: _disaAktariliyor
@@ -97,9 +102,14 @@ class _TutanakListeScreenState extends ConsumerState<TutanakListeScreen> {
             Material(
               color: Colors.orange.shade50,
               child: ListTile(
-                leading: const Icon(Icons.cloud_off_outlined, color: Colors.orange),
+                leading: const Icon(
+                  Icons.cloud_off_outlined,
+                  color: Colors.orange,
+                ),
                 title: Text('$bekleyenTaslakSayisi taslak gönderim bekliyor'),
-                subtitle: const Text('Bağlantı yokken kaydedilen tutanaklar burada.'),
+                subtitle: const Text(
+                  'Bağlantı yokken kaydedilen tutanaklar burada.',
+                ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.push('/tutanak/kuyruk'),
               ),
@@ -133,13 +143,16 @@ class _TutanakListeScreenState extends ConsumerState<TutanakListeScreen> {
               data: (liste) => liste.isEmpty
                   ? const Center(child: Text('Kayıtlı tutanak bulunamadı.'))
                   : RefreshIndicator(
-                      onRefresh: () async =>
-                          ref.invalidate(tutanakListProvider(TutanakFiltre(durum: _durumFiltre))),
+                      onRefresh: () async => ref.invalidate(
+                        tutanakListProvider(TutanakFiltre(durum: _durumFiltre)),
+                      ),
                       child: ListView.separated(
                         padding: const EdgeInsets.fromLTRB(12, 12, 12, 90),
                         itemCount: liste.length,
-                        separatorBuilder: (context, index) => const SizedBox(height: 10),
-                        itemBuilder: (context, index) => _TutanakKarti(tutanak: liste[index]),
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 10),
+                        itemBuilder: (context, index) =>
+                            _TutanakKarti(tutanak: liste[index]),
                       ),
                     ),
               loading: () => const Center(child: CircularProgressIndicator()),
@@ -153,7 +166,11 @@ class _TutanakListeScreenState extends ConsumerState<TutanakListeScreen> {
 }
 
 class _DurumChip extends StatelessWidget {
-  const _DurumChip({required this.label, required this.selected, required this.onTap});
+  const _DurumChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
   final String label;
   final bool selected;
@@ -161,7 +178,11 @@ class _DurumChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChoiceChip(label: Text(label), selected: selected, onSelected: (_) => onTap());
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onTap(),
+    );
   }
 }
 
@@ -183,11 +204,13 @@ class _TutanakKarti extends StatelessWidget {
         },
         leading: TehlikeSinifiBadge(sinif: tutanak.tehlikeSinifi),
         title: Text(tutanak.uttNo ?? '(Taslak)'),
-        subtitle: Text([
-          if (tutanak.projeAdi != null) tutanak.projeAdi!,
-          DateFormat('dd.MM.yyyy').format(tutanak.tespitTarihi),
-          if (tutanak.raporlayanAdi != null) tutanak.raporlayanAdi!,
-        ].join(' · ')),
+        subtitle: Text(
+          [
+            if (tutanak.projeAdi != null) tutanak.projeAdi!,
+            DateFormat('dd.MM.yyyy').format(tutanak.tespitTarihi),
+            if (tutanak.raporlayanAdi != null) tutanak.raporlayanAdi!,
+          ].join(' · '),
+        ),
         trailing: TutanakDurumBadge(durum: tutanak.durum),
       ),
     );

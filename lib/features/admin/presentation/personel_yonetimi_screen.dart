@@ -323,7 +323,9 @@ class _ProjeAtamaDialogState extends ConsumerState<_ProjeAtamaDialog> {
     return AlertDialog(
       title: Text('${widget.profile.adSoyad} — Proje Ataması'),
       content: SizedBox(
-        width: 360,
+        width: (MediaQuery.sizeOf(context).width * 0.9)
+            .clamp(0, 360)
+            .toDouble(),
         child: widget.projeler.isEmpty
             ? const Text('Tanımlı proje bulunamadı.')
             : ListView(

@@ -456,7 +456,9 @@ class _NotFotoDialogState extends State<_NotFotoDialog> {
     return AlertDialog(
       title: Text(widget.baslik),
       content: SizedBox(
-        width: 380,
+        width: (MediaQuery.sizeOf(context).width * 0.9)
+            .clamp(0, 380)
+            .toDouble(),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

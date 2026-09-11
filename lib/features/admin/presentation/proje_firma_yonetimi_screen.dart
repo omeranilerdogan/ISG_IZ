@@ -152,7 +152,9 @@ Future<void> _projeFormAc(
         content: Form(
           key: formKey,
           child: SizedBox(
-            width: 380,
+            width: (MediaQuery.sizeOf(context).width * 0.9)
+                .clamp(0, 380)
+                .toDouble(),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -174,6 +176,8 @@ Future<void> _projeFormAc(
                 DropdownButtonFormField<String?>(
                   initialValue: seciliOsgbId,
                   decoration: const InputDecoration(labelText: 'OSGB'),
+                  isExpanded: true,
+                  menuMaxHeight: MediaQuery.sizeOf(context).height * 0.5,
                   items: [
                     const DropdownMenuItem<String?>(
                       value: null,
@@ -417,7 +421,9 @@ class _FirmalarTab extends ConsumerWidget {
             content: Form(
               key: formKey,
               child: SizedBox(
-                width: 360,
+                width: (MediaQuery.sizeOf(context).width * 0.9)
+                    .clamp(0, 360)
+                    .toDouble(),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -434,6 +440,8 @@ class _FirmalarTab extends ConsumerWidget {
                       decoration: const InputDecoration(
                         labelText: 'İnşaat (Proje)',
                       ),
+                      isExpanded: true,
+                      menuMaxHeight: MediaQuery.sizeOf(context).height * 0.5,
                       items: [
                         const DropdownMenuItem<String?>(
                           value: null,
@@ -568,7 +576,9 @@ class _OsgbTab extends ConsumerWidget {
         content: Form(
           key: formKey,
           child: SizedBox(
-            width: 360,
+            width: (MediaQuery.sizeOf(context).width * 0.9)
+                .clamp(0, 360)
+                .toDouble(),
             child: AppTextField(
               label: 'OSGB Adı',
               controller: adController,
