@@ -29,6 +29,22 @@ class DbFunctions {
   static const claimPushToken = 'claim_push_token';
 }
 
+class AppUrls {
+  AppUrls._();
+
+  /// Firebase Hosting'de yayınlanan web uygulamasının adresi. Mobilden istenen
+  /// şifre sıfırlama bağlantıları da bu adrese yönlenir.
+  static const web = 'https://isg-uygunsuzluk-tespit.web.app';
+
+  /// Şifre sıfırlama e-postasındaki bağlantıya eklenen işaret parametresi;
+  /// uygulama açılışta bunu görünce yeni şifre ekranına yönlendirir.
+  static const sifreYenilemeParametresi = 'sifre_yenile';
+
+  /// Supabase "Reset Password" e-posta şablonunun bağlantıya eklediği
+  /// doğrulama değeri: `{{ .SiteURL }}/?sifre_yenile=1&token_hash={{ .TokenHash }}&type=recovery`
+  static const tokenHashParametresi = 'token_hash';
+}
+
 class StorageBuckets {
   StorageBuckets._();
 

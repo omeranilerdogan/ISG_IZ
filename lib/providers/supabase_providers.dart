@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/config/supabase_config.dart';
+import '../core/constants/app_constants.dart';
 import '../data/repositories/auth_repository.dart';
 import '../data/repositories/bildirim_repository.dart';
 import '../data/repositories/firma_repository.dart';
@@ -51,6 +53,28 @@ final pushTokenRepositoryProvider = Provider<PushTokenRepository>((ref) {
 final authStateChangesProvider = StreamProvider<AuthState>((ref) {
   return ref.watch(authRepositoryProvider).authStateChanges;
 });
+
+/// Kullanıcı şifre sıfırlama bağlantısından geldiyse true olur; router bu
+/// durumda kullanıcıyı yeni şifre ekranına yönlendirir.
+class SifreYenilemeModuNotifier extends Notifier<bool> {
+  @override
+  bool build() {
+    ref.listen(authStateChangesProvider, (previous, next) {
+      if (next.valueOrNull?.event == AuthChangeEvent.passwordRecovery) {
+        state = true;
+      }
+    });
+    // Web'de bağlantıdaki işaret parametresi, passwordRecovery olayı
+    // dinleyici bağlanmadan önce yayınlanmış olsa bile modu açar.
+    return kIsWeb && Uri.base.queryParameters.containsKey(AppUrls.sifreYenilemeParametresi);
+  }
+
+  void tamamlandi() => state = false;
+}
+
+final sifreYenilemeModuProvider = NotifierProvider<SifreYenilemeModuNotifier, bool>(
+  SifreYenilemeModuNotifier.new,
+);
 
 /// Şu anki oturum sahibinin kullanıcı kimliği (giriş yapılmamışsa null).
 final currentUserIdProvider = Provider<String?>((ref) {

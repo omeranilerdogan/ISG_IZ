@@ -8,6 +8,7 @@ import '../../features/admin/presentation/proje_firma_yonetimi_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/pending_approval_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
+import '../../features/auth/presentation/sifre_yenile_screen.dart';
 import '../../features/bildirim/presentation/bildirim_liste_screen.dart';
 import '../../features/home/presentation/home_shell.dart';
 import '../../features/indirilenler/presentation/indirilen_dosyalar_screen.dart';
@@ -27,6 +28,7 @@ class _RouterRefreshNotifier extends ChangeNotifier {
   _RouterRefreshNotifier(Ref ref) {
     ref.listen(authStateChangesProvider, (previous, next) => notifyListeners());
     ref.listen(currentProfileProvider, (previous, next) => notifyListeners());
+    ref.listen(sifreYenilemeModuProvider, (previous, next) => notifyListeners());
   }
 }
 
@@ -43,6 +45,12 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/login',
     refreshListenable: refreshNotifier,
     redirect: (context, state) {
+      // Şifre sıfırlama bağlantısından gelen kullanıcı, yeni şifresini
+      // belirleyene kadar başka bir sayfaya geçmez.
+      if (ref.read(sifreYenilemeModuProvider)) {
+        return state.matchedLocation == '/sifre-yenile' ? null : '/sifre-yenile';
+      }
+
       final userId = ref.read(currentUserIdProvider);
       final loggingIn = state.matchedLocation == '/login' || state.matchedLocation == '/register';
 
@@ -82,6 +90,10 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),
+      GoRoute(
+        path: '/sifre-yenile',
+        builder: (context, state) => const SifreYenileScreen(),
+      ),
       GoRoute(
         path: '/pending-approval',
         builder: (context, state) => const PendingApprovalScreen(),

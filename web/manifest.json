@@ -1,11 +1,11 @@
 {
-    "name": "isg_uygunsuzluk_tespit",
-    "short_name": "isg_uygunsuzluk_tespit",
+    "name": "PSFK- UTP",
+    "short_name": "PSFK- UTP",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
+    "background_color": "#E4EAF4",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "İSG Uygunsuzluk Tespit Tutanağı",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

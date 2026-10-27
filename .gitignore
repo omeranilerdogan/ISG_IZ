@@ -51,3 +51,6 @@ supabase/.branches/
 
 # Claude Code yerel ayarları
 .claude/
+
+# Firebase Hosting cache
+.firebase/

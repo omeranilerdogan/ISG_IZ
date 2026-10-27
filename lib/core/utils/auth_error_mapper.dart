@@ -15,6 +15,12 @@ String mapAuthError(Object error) {
     if (msg.contains('password should be at least')) {
       return 'Şifre en az 6 karakter olmalıdır.';
     }
+    if (msg.contains('email rate limit exceeded')) {
+      return 'Kısa sürede çok fazla e-posta istendi. Lütfen bir süre sonra tekrar deneyin.';
+    }
+    if (msg.contains('for security purposes')) {
+      return 'Güvenlik nedeniyle yeni bir istek için birkaç saniye beklemeniz gerekiyor.';
+    }
     return error.message;
   }
   return 'Beklenmeyen bir hata oluştu: $error';

@@ -1,4 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../core/constants/app_constants.dart';
 
 /// Supabase Auth üzerinden oturum açma/kayıt/çıkış işlemleri (Bölüm 5.1, 5.2).
 class AuthRepository {
@@ -41,7 +44,23 @@ class AuthRepository {
 
   Future<void> signOut() => _client.auth.signOut();
 
+  /// Bağlantı, Supabase panelindeki Site URL yerine açıkça verilen adrese
+  /// döner; bu adresin panelde "Redirect URLs" listesinde olması gerekir.
   Future<void> sendPasswordResetEmail(String email) {
-    return _client.auth.resetPasswordForEmail(email);
+    final kok = kIsWeb ? Uri.base.origin : AppUrls.web;
+    return _client.auth.resetPasswordForEmail(
+      email,
+      redirectTo: '$kok/?${AppUrls.sifreYenilemeParametresi}=1',
+    );
+  }
+
+  /// Şifre sıfırlama e-postasındaki `token_hash` değerini oturuma çevirir.
+  /// PKCE kod değişiminin aksine isteğin yapıldığı cihazdan bağımsız çalışır.
+  Future<void> verifyRecoveryToken(String tokenHash) {
+    return _client.auth.verifyOTP(type: OtpType.recovery, tokenHash: tokenHash);
+  }
+
+  Future<void> updatePassword(String yeniSifre) {
+    return _client.auth.updateUser(UserAttributes(password: yeniSifre));
   }
 }

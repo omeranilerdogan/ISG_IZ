@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -23,6 +24,27 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _beniHatirla = true;
   bool _loading = false;
   String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _errorMessage = _baglantiHatasi();
+  }
+
+  /// E-postadaki bağlantı geçersizse Supabase kullanıcıyı adrese hata
+  /// parametreleri ekleyerek geri gönderir; bunu kullanıcıya açıklar.
+  String? _baglantiHatasi() {
+    if (!kIsWeb) return null;
+    final params = Uri.base.queryParameters;
+    final kod = params['error_code'];
+    if (kod == null && params['error'] == null) return null;
+    if (kod == 'otp_expired') {
+      return 'E-postadaki bağlantının süresi dolmuş ya da daha önce kullanılmış. '
+          'Lütfen "Şifremi Unuttum" ile yeni bir bağlantı isteyin ve yalnızca '
+          'en son gelen e-postadaki bağlantıyı kullanın.';
+    }
+    return 'E-postadaki bağlantı doğrulanamadı. Lütfen yeni bir bağlantı isteyin.';
+  }
 
   @override
   void dispose() {
@@ -83,8 +105,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(Icons.health_and_safety, size: 56, color: AppTheme.primary),
-                  const SizedBox(height: 12),
+                  Center(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(24),
+                      child: Image.asset('assets/images/logo.png', width: 112, height: 112),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   Text(
                     'İSG Uygunsuzluk Tespit Tutanağı',
                     textAlign: TextAlign.center,
